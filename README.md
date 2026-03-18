@@ -777,7 +777,7 @@ No setup needed. When active it silently enforces **15 best-practice rules**:
 ## Test Engineer Agent
 
 For deep TDD sessions and whole-module test strategy work, invoke the specialized
-`test-engineer` agent (`Alex Chen`, senior Angular test engineer):
+`test-engineer` agent (senior Angular test engineer):
 
 ```bash
 # Full test suite for a feature module
@@ -1239,7 +1239,7 @@ angular-test-plugin/
 │                                   activates on *.spec.ts, ng test, TestBed, etc.
 │
 ├── agents/
-│   └── test-engineer.md         ← "Alex Chen" — TDD agent
+│   └── test-engineer.md         ← TDD agent
 │                                   4-phase workflow · never guesses DI
 │
 └── README.md                    ← this file

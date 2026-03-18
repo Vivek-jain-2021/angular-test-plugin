@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Angular Test Plugin — Client Presentation</title>
+  <style>
+    /* ─── Reset & Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand-green: #10B981;
+      --brand-green-light: #6EE7B7;
+      --brand-teal: #14B8A6;
+      --brand-cyan: #06B6D4;
+      --brand-blue: #2563EB;
+      --brand-indigo: #4F46E5;
+      --brand-amber: #F59E0B;
+      --brand-rose: #F43F5E;
+      --brand-purple: #7C3AED;
+      --bg-dark: #0A0F0E;
+      --bg-card: #0F1A16;
+      --bg-card2: #111F18;
+      --text-primary: #F1F5F9;
+      --text-muted: #94A3B8;
+      --border: rgba(255,255,255,0.08);
+      --glow-green: 0 0 60px rgba(16,185,129,0.35);
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* ─── Slide Container ──────────────────────────────────────── */
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 2.8rem;
+      left: 0;
+      right: 0;
+      bottom: 5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem 4rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      overflow-y: auto;
+      background: transparent !important;
+    }
+    .slide.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .slide.exit {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Nav Controls ─────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      z-index: 100;
+      background: rgba(10,15,14,0.85);
+      backdrop-filter: blur(12px);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .nav button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.45rem 1.1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .nav button:hover { background: rgba(16,185,129,0.25); border-color: var(--brand-green-light); }
+    .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+    .slide-counter {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      min-width: 5rem;
+      text-align: center;
+    }
+    .dot-row {
+      position: fixed;
+      top: 1.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.55rem;
+      z-index: 100;
+      max-width: 80vw;
+    }
+    .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      transition: background 0.3s, transform 0.3s, width 0.3s;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .dot.active {
+      background: var(--brand-green-light);
+      width: 18px;
+      border-radius: 3px;
+    }
+
+    /* ─── Background layer ─────────────────────────────────────── */
+    #bg-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      transition: background 0.4s ease;
+      pointer-events: none;
+    }
+    .deck { position: relative; z-index: 1; }
+
+    /* ─── Backgrounds ───────────────────────────────────────────── */
+    .bg-gradient-green {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(16,185,129,0.28) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-teal {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(20,184,166,0.26) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-blue {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.25) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-cyan {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(6,182,212,0.22) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-amber {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,158,11,0.22) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-rose {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(244,63,94,0.2) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-indigo {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(79,70,229,0.26) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+    .bg-gradient-purple {
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.26) 0%, transparent 70%),
+                  var(--bg-dark);
+    }
+
+    /* ─── Typography ──────────────────────────────────────────── */
+    .eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--brand-green-light);
+      margin-bottom: 0.75rem;
+    }
+    .headline {
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.12;
+      text-align: center;
+      letter-spacing: -0.02em;
+    }
+    .headline .accent { color: var(--brand-green-light); }
+    .headline .accent-cyan { color: var(--brand-cyan); }
+    .headline .accent-teal { color: var(--brand-teal); }
+    .headline .accent-amber { color: var(--brand-amber); }
+    .headline .accent-rose { color: var(--brand-rose); }
+    .headline .accent-indigo { color: #818CF8; }
+    .subtitle {
+      font-size: clamp(1rem, 1.6vw, 1.2rem);
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.65;
+      max-width: 680px;
+      margin-top: 1rem;
+    }
+    .body-text {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-width: 680px;
+    }
+    .story-quote {
+      font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+      font-style: italic;
+      color: var(--text-primary);
+      line-height: 1.7;
+      text-align: center;
+      max-width: 760px;
+      position: relative;
+      padding: 1.5rem 2rem;
+    }
+    .story-quote::before {
+      content: '"';
+      position: absolute;
+      top: -0.2rem;
+      left: 0.2rem;
+      font-size: 5rem;
+      color: var(--brand-green);
+      opacity: 0.35;
+      line-height: 1;
+      font-style: normal;
+    }
+
+    /* ─── Cards & Grids ──────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      width: 100%;
+      max-width: 900px;
+      margin-top: 1.5rem;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+    .card:hover { border-color: var(--brand-green); transform: translateY(-3px); }
+    .card-icon { font-size: 1.4rem; }
+    .card-title { font-weight: 700; font-size: 0.88rem; }
+    .card-desc { font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; }
+
+    /* ─── Pipeline / Timeline ───────────────────────────────── */
+    .pipeline {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      width: 100%;
+      max-width: 950px;
+      margin-top: 1.5rem;
+    }
+    .pipe-step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .pipe-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -0.7rem;
+      top: 1.2rem;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      z-index: 2;
+    }
+    .pipe-badge {
+      width: 2.8rem; height: 2.8rem;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      border: 2px solid var(--border);
+      margin-bottom: 0.6rem;
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+    }
+    .pipe-label { font-size: 0.72rem; font-weight: 600; text-align: center; color: var(--text-muted); line-height: 1.35; }
+    .pipe-sub { font-size: 0.65rem; text-align: center; color: rgba(148,163,184,0.6); margin-top: 0.15rem; }
+
+    /* ─── Code Block ─────────────────────────────────────────── */
+    .code-block {
+      background: #0D1117;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: #E2E8F0;
+      width: 100%;
+      max-width: 680px;
+      overflow-x: auto;
+    }
+    .code-block .kw { color: #C792EA; }
+    .code-block .fn { color: #82AAFF; }
+    .code-block .str { color: #C3E88D; }
+    .code-block .cm { color: #546E7A; font-style: italic; }
+    .code-block .tag { color: #F07178; }
+    .code-block .attr { color: #FFCB6B; }
+    .code-block .prompt { color: var(--brand-green-light); }
+
+    /* ─── Two-column ─────────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      width: 100%;
+      max-width: 920px;
+      margin-top: 1.5rem;
+    }
+    .col { display: flex; flex-direction: column; gap: 0.8rem; }
+
+    /* ─── Feature List ──────────────────────────────────────── */
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.5rem; }
+    .feature-list li {
+      display: flex;
+      gap: 0.7rem;
+      align-items: flex-start;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .feature-list li .bullet {
+      width: 1.3rem; height: 1.3rem;
+      border-radius: 50%;
+      background: rgba(16,185,129,0.2);
+      border: 1.5px solid var(--brand-green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+      color: var(--brand-green-light);
+    }
+    .feature-list li strong { color: var(--text-primary); }
+
+    /* ─── Phase Header ──────────────────────────────────────── */
+    .phase-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16,185,129,0.15);
+      border: 1px solid rgba(16,185,129,0.35);
+      color: var(--brand-green-light);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ─── Stats ─────────────────────────────────────────────── */
+    .stat-row {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+    .stat-num { font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; color: var(--brand-green-light); }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); text-align: center; }
+
+    /* ─── Tag Pills ─────────────────────────────────────────── */
+    .tag-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
+    .tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-muted);
+    }
+
+    /* ─── Divider ───────────────────────────────────────────── */
+    .divider {
+      width: 3rem; height: 3px;
+      background: linear-gradient(90deg, var(--brand-green), var(--brand-cyan));
+      border-radius: 999px;
+      margin: 0.8rem auto;
+    }
+
+    /* ─── Command Block ─────────────────────────────────────── */
+    .cmd {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #0D1117;
+      border: 1px solid rgba(16,185,129,0.4);
+      border-radius: 8px;
+      padding: 0.35rem 0.85rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--brand-green-light);
+    }
+
+    /* ─── Big Arrow Flow ─────────────────────────────────────── */
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .flow-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.7rem 1.1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .flow-arrow { font-size: 1.3rem; color: var(--text-muted); }
+
+    /* ─── Banner ─────────────────────────────────────────────── */
+    .banner {
+      background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(6,182,212,0.12));
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 14px;
+      padding: 1.3rem 2rem;
+      text-align: center;
+      max-width: 780px;
+      margin-top: 1.2rem;
+    }
+    .banner strong { color: var(--brand-green-light); }
+
+    /* ─── Version Matrix Table ──────────────────────────────── */
+    .matrix-table {
+      width: 100%;
+      max-width: 900px;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      margin-top: 1rem;
+    }
+    .matrix-table th {
+      padding: 0.4rem 0.6rem;
+      text-align: center;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.2);
+      color: var(--brand-green-light);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+    .matrix-table th:first-child { text-align: left; }
+    .matrix-table td {
+      padding: 0.35rem 0.6rem;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+    }
+    .matrix-table td:first-child { text-align: left; color: var(--text-primary); font-weight: 500; }
+    .matrix-table tr:hover td { background: rgba(16,185,129,0.05); }
+    .check { color: var(--brand-green); }
+    .dash { color: rgba(148,163,184,0.3); }
+    .preview { color: var(--brand-amber); font-size: 0.65rem; }
+
+    /* ─── Scrollbar ──────────────────────────────────────────── */
+    .slide::-webkit-scrollbar { width: 4px; }
+    .slide::-webkit-scrollbar-track { background: transparent; }
+    .slide::-webkit-scrollbar-thumb { background: rgba(16,185,129,0.4); border-radius: 4px; }
+
+    /* ─── Keyboard hint ──────────────────────────────────────── */
+    .kbd-hint {
+      position: fixed;
+      top: 1.2rem;
+      right: 1.5rem;
+      font-size: 0.68rem;
+      color: rgba(148,163,184,0.4);
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+<div id="bg-layer"></div>
+<div class="deck" id="deck">
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 1 — The Problem
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide active bg-gradient-rose" data-slide="1">
+    <div class="eyebrow">The Problem</div>
+    <h1 class="headline">
+      Angular Testing:<br/>
+      <span class="accent-rose">The Coverage Gap Hiding in Every Project</span>
+    </h1>
+    <p class="story-quote">
+      You've shipped features for months. Tests? They exist — somewhere. Broken ones, outdated
+      ones, stubs that never ran. The sprint ends, coverage stays at 12%, and nobody
+      has time to fix it before the next deadline.
+    </p>
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr); max-width: 920px; margin-top: 0.8rem; gap: 0.75rem;">
+      <div class="card" style="border-color: rgba(244,63,94,0.3);">
+        <div class="card-icon">📉</div>
+        <div class="card-title">Near-Zero Coverage</div>
+        <div class="card-desc">Most Angular projects ship with &lt;20% test coverage — bugs reach production undetected</div>
+      </div>
+      <div class="card" style="border-color: rgba(244,63,94,0.3);">
+        <div class="card-icon">💥</div>
+        <div class="card-title">Broken Tests Block CI</div>
+        <div class="card-desc">Outdated specs with wrong imports, missing providers, and stale mocks halt every pipeline run</div>
+      </div>
+      <div class="card" style="border-color: rgba(244,63,94,0.3);">
+        <div class="card-icon">🕐</div>
+        <div class="card-title">Hours to Write One Suite</div>
+        <div class="card-desc">A single component with HTTP, signals, and guards can take a full day to test correctly</div>
+      </div>
+      <div class="card" style="border-color: rgba(244,63,94,0.3);">
+        <div class="card-icon">🔀</div>
+        <div class="card-title">Angular Version Chaos</div>
+        <div class="card-desc">v14 module tests break in v17 standalone. Signals, <code>input()</code>, <code>@defer</code> — every version rewrites the rules</div>
+      </div>
+      <div class="card" style="border-color: rgba(244,63,94,0.3);">
+        <div class="card-icon">🧩</div>
+        <div class="card-title">NgRx is a Minefield</div>
+        <div class="card-desc">Testing reducers, effects, and selectors requires marble testing expertise most teams lack</div>
+      </div>
+      <div class="card" style="border-color: rgba(244,63,94,0.3);">
+        <div class="card-icon">🔎</div>
+        <div class="card-title">No Visibility Into Gaps</div>
+        <div class="card-desc">Teams don't know what's missing until a bug report arrives — coverage reports are hard to act on</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 2 — The Solution
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-green" data-slide="2">
+    <div class="eyebrow">The Solution</div>
+    <h1 class="headline">
+      Meet Your<br/>
+      <span class="accent">AI Test Engineer</span> for Angular
+    </h1>
+    <p class="subtitle">
+      The Angular Test Plugin sits inside Claude Code and automates
+      every phase of the testing lifecycle — generate, fill gaps, fix failures —
+      across Angular v14 through v19 with zero manual boilerplate.
+    </p>
+    <div class="flow-row">
+      <div class="flow-box">🔍<br/>Detect Version</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border-color: var(--brand-green); color: var(--brand-green);">📝<br/>Generate Specs</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">📊<br/>Analyse Gaps</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">🔧<br/>Fix Failures</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border-color: var(--brand-cyan); color: var(--brand-cyan);">✅<br/>100% Coverage</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box">
+        <span class="stat-num">4</span>
+        <span class="stat-label">Smart Commands</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">6</span>
+        <span class="stat-label">Angular Versions (v14–v19)</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">8</span>
+        <span class="stat-label">File Types Supported</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">18</span>
+        <span class="stat-label">Error Patterns Auto-Fixed</span>
+      </div>
+    </div>
+    <div class="banner" style="margin-top: 1.2rem;">
+      One plugin. Four commands. From zero coverage to production-ready test suites — <strong>in minutes, not days.</strong>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 3 — SDLC Impact
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-indigo" data-slide="3" style="justify-content:flex-start;padding-top:1.2rem;">
+    <div class="eyebrow">SDLC Impact</div>
+    <h1 class="headline" style="font-size:clamp(1.2rem,2.5vw,1.9rem);margin-bottom:0.3rem;">
+      How the Plugin Changes
+      <span style="color:var(--brand-green-light);">Your Testing Lifecycle</span>
+    </h1>
+    <div style="display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:0.7rem;width:100%;max-width:1060px;margin-top:0.4rem;">
+
+      <!-- Before column -->
+      <div>
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--brand-rose);margin-bottom:0.5rem;">❌ Before — Days of Pain</div>
+        <div style="display:flex;flex-direction:column;gap:0.45rem;">
+          <div class="card" style="border-color:rgba(244,63,94,0.25);background:rgba(244,63,94,0.05);padding:0.65rem 0.85rem;flex-direction:row;align-items:flex-start;gap:0.6rem;">
+            <span style="font-size:0.75rem;font-weight:800;color:var(--brand-rose);flex-shrink:0;min-width:1.2rem;">1</span>
+            <div class="card-desc" style="color:var(--text-primary);">Manually configure TestBed for each component type</div>
+          </div>
+          <div class="card" style="border-color:rgba(244,63,94,0.25);background:rgba(244,63,94,0.05);padding:0.65rem 0.85rem;flex-direction:row;align-items:flex-start;gap:0.6rem;">
+            <span style="font-size:0.75rem;font-weight:800;color:var(--brand-rose);flex-shrink:0;min-width:1.2rem;">2</span>
+            <div class="card-desc" style="color:var(--text-primary);">Write hundreds of it() blocks by hand — with gaps</div>
+          </div>
+          <div class="card" style="border-color:rgba(244,63,94,0.25);background:rgba(244,63,94,0.05);padding:0.65rem 0.85rem;flex-direction:row;align-items:flex-start;gap:0.6rem;">
+            <span style="font-size:0.75rem;font-weight:800;color:var(--brand-rose);flex-shrink:0;min-width:1.2rem;">3</span>
+            <div class="card-desc" style="color:var(--text-primary);">Debug NullInjectorError and binding failures for hours</div>
+          </div>
+          <div class="card" style="border-color:rgba(244,63,94,0.25);background:rgba(244,63,94,0.05);padding:0.65rem 0.85rem;flex-direction:row;align-items:flex-start;gap:0.6rem;">
+            <span style="font-size:0.75rem;font-weight:800;color:var(--brand-rose);flex-shrink:0;min-width:1.2rem;">4</span>
+            <div class="card-desc" style="color:var(--text-primary);">Rewrite all tests when upgrading Angular version</div>
+          </div>
+          <div class="card" style="border-color:rgba(244,63,94,0.25);background:rgba(244,63,94,0.05);padding:0.65rem 0.85rem;flex-direction:row;align-items:flex-start;gap:0.6rem;">
+            <span style="font-size:0.75rem;font-weight:800;color:var(--brand-rose);flex-shrink:0;min-width:1.2rem;">5</span>
+            <div class="card-desc" style="color:var(--text-primary);">Coverage report shows red — no idea which tests are missing</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advantages column -->
+      <div>
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--brand-green);margin-bottom:0.4rem;">✦ Advantages</div>
+        <div style="display:flex;flex-direction:column;gap:0.35rem;">
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">⚡</span>
+            <div><div class="card-title" style="color:var(--brand-green);font-size:0.8rem;">Instant Spec Generation</div><div class="card-desc">Full .spec.ts files in seconds — targeting 100% branch coverage.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">🔀</span>
+            <div><div class="card-title" style="color:var(--brand-green);font-size:0.8rem;">Version-Aware Output</div><div class="card-desc">Correct patterns for v14–v19: modules, standalone, signals, @defer.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">🎯</span>
+            <div><div class="card-title" style="color:var(--brand-green);font-size:0.8rem;">Surgical Gap Filling</div><div class="card-desc">Adds only missing it() blocks — never rewrites passing tests.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">🔧</span>
+            <div><div class="card-title" style="color:var(--brand-green);font-size:0.8rem;">Auto-Fix 18 Error Patterns</div><div class="card-desc">NullInjectorError, signal inputs, fakeAsync, marble tests — all fixed automatically.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">📦</span>
+            <div><div class="card-title" style="color:var(--brand-green);font-size:0.8rem;">Full Project Orchestration</div><div class="card-desc">One command runs the complete pipeline across every file in the project.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">🧪</span>
+            <div><div class="card-title" style="color:var(--brand-green);font-size:0.8rem;">Jasmine & Jest Both Supported</div><div class="card-desc">Switch runners with a flag — output adapts automatically.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trade-offs column -->
+      <div>
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--brand-amber);margin-bottom:0.4rem;">✦ Trade-offs</div>
+        <div style="display:flex;flex-direction:column;gap:0.35rem;">
+          <div class="card" style="border-color:rgba(245,158,11,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">🧠</span>
+            <div><div class="card-title" style="color:var(--brand-amber);font-size:0.8rem;">Business Logic Still Manual</div><div class="card-desc">Plugin generates structure — complex domain logic needs developer review.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(245,158,11,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">📖</span>
+            <div><div class="card-title" style="color:var(--brand-amber);font-size:0.8rem;">Source Must Be Readable</div><div class="card-desc">Generated tests are only as good as the source code structure — messy code produces noisy tests.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(245,158,11,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">🔐</span>
+            <div><div class="card-title" style="color:var(--brand-amber);font-size:0.8rem;">Review Before Merging</div><div class="card-desc">AI-generated tests are a strong starting point — always review assertions before CI enforcement.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(245,158,11,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">💰</span>
+            <div><div class="card-title" style="color:var(--brand-amber);font-size:0.8rem;">Claude API Cost</div><div class="card-desc">Large project-wide runs consume tokens — use --dry-run to plan scope first.</div></div>
+          </div>
+          <div class="card" style="border-color:rgba(245,158,11,0.3);padding:0.5rem 0.7rem;flex-direction:row;align-items:flex-start;gap:0.5rem;">
+            <span style="font-size:0.9rem;flex-shrink:0;">⚠️</span>
+            <div><div class="card-title" style="color:var(--brand-amber);font-size:0.8rem;">Requires Claude Code CLI</div><div class="card-desc">Plugin runs inside Claude Code — teams need the CLI installed and configured.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SDLC phases strip -->
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.5rem;width:100%;max-width:1060px;margin-top:0.6rem;">
+      <div style="font-size:0.65rem;grid-column:1/-1;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--brand-cyan);margin-bottom:0.1rem;">✦ SDLC Phase Impact</div>
+      <div class="card" style="border-color:rgba(6,182,212,0.25);padding:0.45rem 0.6rem;gap:0.2rem;">
+        <div class="card-title" style="font-size:0.75rem;color:var(--brand-cyan);">📋 Planning</div>
+        <div class="card-desc" style="font-size:0.68rem;">Estimate test effort per file with --dry-run before writing a single line</div>
+      </div>
+      <div class="card" style="border-color:rgba(6,182,212,0.25);padding:0.45rem 0.6rem;gap:0.2rem;">
+        <div class="card-title" style="font-size:0.75rem;color:var(--brand-cyan);">⚙️ Development</div>
+        <div class="card-desc" style="font-size:0.68rem;">Generate specs alongside code — TDD workflow from day one</div>
+      </div>
+      <div class="card" style="border-color:rgba(6,182,212,0.25);padding:0.45rem 0.6rem;gap:0.2rem;">
+        <div class="card-title" style="font-size:0.75rem;color:var(--brand-cyan);">🧪 Testing</div>
+        <div class="card-desc" style="font-size:0.68rem;">100% branch coverage targets with automated gap detection</div>
+      </div>
+      <div class="card" style="border-color:rgba(6,182,212,0.25);padding:0.45rem 0.6rem;gap:0.2rem;">
+        <div class="card-title" style="font-size:0.75rem;color:var(--brand-cyan);">🔁 CI/CD</div>
+        <div class="card-desc" style="font-size:0.68rem;">Auto-generates Karma & Jest threshold configs for pipeline enforcement</div>
+      </div>
+      <div class="card" style="border-color:rgba(6,182,212,0.25);padding:0.45rem 0.6rem;gap:0.2rem;">
+        <div class="card-title" style="font-size:0.75rem;color:var(--brand-cyan);">🚀 Deployment</div>
+        <div class="card-desc" style="font-size:0.68rem;">Deploy with confidence — every route, guard, and service is tested</div>
+      </div>
+      <div class="card" style="border-color:rgba(6,182,212,0.25);padding:0.45rem 0.6rem;gap:0.2rem;">
+        <div class="card-title" style="font-size:0.75rem;color:var(--brand-cyan);">🔧 Maintenance</div>
+        <div class="card-desc" style="font-size:0.68rem;">Angular version upgrade? Run fix command — broken tests repaired automatically</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 4 — The 4 Commands Overview
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-teal" data-slide="4">
+    <div class="eyebrow">The Full Toolkit</div>
+    <h1 class="headline">
+      Four Commands,<br/>
+      <span class="accent-teal">Complete Coverage Pipeline</span>
+    </h1>
+    <div class="pipeline" style="margin-top: 1.5rem;">
+      <div class="pipe-step">
+        <div class="pipe-badge" style="background: rgba(16,185,129,0.15); border-color: var(--brand-green);">📝</div>
+        <div class="pipe-label">generate</div>
+        <div class="pipe-sub">Create full spec files from scratch</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-badge" style="background: rgba(6,182,212,0.15); border-color: var(--brand-cyan);">📊</div>
+        <div class="pipe-label">coverage</div>
+        <div class="pipe-sub">Fill missing it() blocks only</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-badge" style="background: rgba(245,158,11,0.15); border-color: var(--brand-amber);">🔧</div>
+        <div class="pipe-label">fix</div>
+        <div class="pipe-sub">Repair failing tests surgically</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-badge" style="background: rgba(124,58,237,0.15); border-color: var(--brand-purple);">🚀</div>
+        <div class="pipe-label">suite</div>
+        <div class="pipe-sub">Run full pipeline: all 3 phases</div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top: 1.5rem; gap: 1.2rem;">
+      <div class="col">
+        <div class="card" style="border-color: rgba(16,185,129,0.3);">
+          <div style="display:flex;gap:0.7rem;align-items:center;">
+            <span class="cmd">/angular-test:generate</span>
+          </div>
+          <div class="card-desc" style="margin-top:0.4rem;">Auto-detects your Angular version and generates ready-to-run .spec.ts files for any component, service, pipe, directive, guard, resolver, interceptor, or NgRx file.</div>
+        </div>
+        <div class="card" style="border-color: rgba(6,182,212,0.3);">
+          <div style="display:flex;gap:0.7rem;align-items:center;">
+            <span class="cmd" style="border-color: rgba(6,182,212,0.4); color: var(--brand-cyan);">/angular-test:coverage</span>
+          </div>
+          <div class="card-desc" style="margin-top:0.4rem;">Analyses existing test files, identifies missing scenarios, and generates only the absent it() blocks — never touching tests that already pass.</div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card" style="border-color: rgba(245,158,11,0.3);">
+          <div style="display:flex;gap:0.7rem;align-items:center;">
+            <span class="cmd" style="border-color: rgba(245,158,11,0.4); color: var(--brand-amber);">/angular-test:fix</span>
+          </div>
+          <div class="card-desc" style="margin-top:0.4rem;">Diagnoses failing tests from static analysis or test logs, then applies surgical fixes for 18 documented error patterns — no full rewrites.</div>
+        </div>
+        <div class="card" style="border-color: rgba(124,58,237,0.3);">
+          <div style="display:flex;gap:0.7rem;align-items:center;">
+            <span class="cmd" style="border-color: rgba(124,58,237,0.4); color: #A78BFA;">/angular-test:suite</span>
+          </div>
+          <div class="card-desc" style="margin-top:0.4rem;">Orchestrates the full pipeline for the entire project: reads angular.json, discovers all files, then runs generate → coverage → fix in dependency order.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 5 — generate command deep-dive
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-green" data-slide="5">
+    <div class="phase-tag">📝 Command 1</div>
+    <h1 class="headline" style="font-size:clamp(1.6rem,3.5vw,2.5rem);">
+      <span class="accent">/angular-test:generate</span>
+    </h1>
+    <p class="subtitle" style="margin-top:0.5rem;">Generate complete, ready-to-run spec files — targeting 100% branch coverage</p>
+    <div class="two-col" style="margin-top: 1rem; gap: 1.5rem;">
+      <div class="col">
+        <ul class="feature-list">
+          <li><span class="bullet">✓</span><span><strong>Auto-detects Angular version</strong> (v14–v19) and applies the correct testing patterns and APIs</span></li>
+          <li><span class="bullet">✓</span><span><strong>Handles all file types:</strong> components (module &amp; standalone), services, pipes, directives, guards, resolvers, interceptors, NgRx</span></li>
+          <li><span class="bullet">✓</span><span><strong>Version-specific APIs:</strong> signals, <code>input()</code>, <code>output()</code>, <code>model()</code>, <code>@defer</code>, resource API, zoneless</span></li>
+          <li><span class="bullet">✓</span><span><strong>Both happy &amp; unhappy paths</strong> — error scenarios always tested, not just the success case</span></li>
+          <li><span class="bullet">✓</span><span><strong>Scope: single file, directory, or entire project</strong> — with --skip-existing to protect current work</span></li>
+        </ul>
+        <div class="tag-row">
+          <span class="tag">--dry-run</span>
+          <span class="tag">--skip-existing</span>
+          <span class="tag">--overwrite</span>
+          <span class="tag">--only=components</span>
+          <span class="tag">--threshold=80</span>
+          <span class="tag">--runner=jest</span>
+          <span class="tag">--ng=17</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="code-block">
+<span class="cm">// Generated: user.service.spec.ts</span>
+<span class="kw">describe</span>(<span class="str">'UserService'</span>, () => {
+  <span class="kw">let</span> service: <span class="fn">UserService</span>;
+  <span class="kw">let</span> httpMock: <span class="fn">HttpTestingController</span>;
+
+  <span class="fn">beforeEach</span>(() => {
+    <span class="fn">TestBed.configureTestingModule</span>({
+      providers: [<span class="fn">provideHttpClientTesting</span>()]
+    });
+    service = <span class="fn">TestBed.inject</span>(UserService);
+    httpMock = <span class="fn">TestBed.inject</span>(HttpTestingController);
+  });
+
+  <span class="fn">it</span>(<span class="str">'should load users successfully'</span>, () => {
+    service.<span class="fn">getUsers</span>().<span class="fn">subscribe</span>(users => {
+      <span class="fn">expect</span>(users.length).<span class="fn">toBe</span>(<span class="attr">2</span>);
+    });
+    <span class="kw">const</span> req = httpMock.<span class="fn">expectOne</span>(<span class="str">'/api/users'</span>);
+    req.<span class="fn">flush</span>([{ id: <span class="attr">1</span> }, { id: <span class="attr">2</span> }]);
+  });
+
+  <span class="fn">it</span>(<span class="str">'should handle 404 error gracefully'</span>, () => { <span class="cm">/* ... */</span> });
+});</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 6 — coverage command deep-dive
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-cyan" data-slide="6">
+    <div class="phase-tag" style="background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.35); color: var(--brand-cyan);">📊 Command 2</div>
+    <h1 class="headline" style="font-size:clamp(1.6rem,3.5vw,2.5rem);">
+      <span class="accent-cyan">/angular-test:coverage</span>
+    </h1>
+    <p class="subtitle" style="margin-top:0.5rem;">Analyse existing tests and fill coverage gaps — without touching what already works</p>
+    <div class="two-col" style="margin-top: 1rem; gap: 1.5rem;">
+      <div class="col">
+        <ul class="feature-list">
+          <li><span class="bullet">✓</span><span><strong>Per-file gap analysis</strong> with detailed tables: covered vs missing scenarios per method</span></li>
+          <li><span class="bullet">✓</span><span><strong>Never rewrites passing tests</strong> — adds only the missing it() blocks needed to hit threshold</span></li>
+          <li><span class="bullet">✓</span><span><strong>Configurable threshold</strong> — target 70%, 80%, or 100% coverage per your team's standard</span></li>
+          <li><span class="bullet">✓</span><span><strong>Report formats:</strong> table (terminal), JSON (CI), or HTML (stakeholder dashboard)</span></li>
+          <li><span class="bullet">✓</span><span><strong>Karma &amp; Jest threshold configs</strong> generated automatically for CI enforcement</span></li>
+        </ul>
+        <div class="tag-row">
+          <span class="tag">--threshold=80</span>
+          <span class="tag">--report=html</span>
+          <span class="tag">--report=json</span>
+          <span class="tag">--skip-complete</span>
+          <span class="tag">--dry-run</span>
+        </div>
+      </div>
+      <div class="col">
+        <div class="code-block">
+<span class="cm">// Gap analysis output (table mode)</span>
+<span class="str">File: dashboard.component.ts</span>
+
+<span class="kw">Method</span>          <span class="fn">Covered</span>    <span class="tag">Missing</span>
+──────────────────────────────────────
+<span class="fn">ngOnInit()</span>      <span class="fn">✓</span>          —
+<span class="fn">loadData()</span>      <span class="fn">✓</span>          —
+<span class="fn">onFilter()</span>      —          <span class="tag">error state</span>
+<span class="fn">exportCSV()</span>     —          <span class="tag">empty data</span>
+                           <span class="tag">auth error</span>
+
+<span class="cm">// Generated missing it() blocks:</span>
+<span class="fn">it</span>(<span class="str">'onFilter should handle error state'</span>, ...);
+<span class="fn">it</span>(<span class="str">'exportCSV with empty data should warn'</span>, ...);
+<span class="fn">it</span>(<span class="str">'exportCSV should handle auth error'</span>, ...);</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 7 — fix command deep-dive
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-amber" data-slide="7">
+    <div class="phase-tag" style="background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.35); color: var(--brand-amber);">🔧 Command 3</div>
+    <h1 class="headline" style="font-size:clamp(1.6rem,3.5vw,2.5rem);">
+      <span class="accent-amber">/angular-test:fix</span>
+    </h1>
+    <p class="subtitle" style="margin-top:0.5rem;">Diagnose and surgically repair failing Angular tests — 18 documented error patterns</p>
+    <div class="two-col" style="margin-top: 1rem; gap: 1.5rem;">
+      <div class="col">
+        <ul class="feature-list">
+          <li><span class="bullet">✓</span><span><strong>Static analysis</strong> of spec files to identify failure patterns — no test run needed</span></li>
+          <li><span class="bullet">✓</span><span><strong>Log-driven mode:</strong> parse test run output with <code>--from-log=path</code> to target exact failures</span></li>
+          <li><span class="bullet">✓</span><span><strong>Never rewrites entire files</strong> — only targeted, minimal changes to failing blocks</span></li>
+          <li><span class="bullet">✓</span><span><strong>Group by error type</strong> for batch fixes across multiple files simultaneously</span></li>
+        </ul>
+        <div style="margin-top: 0.8rem;">
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-amber);margin-bottom:0.5rem;">18 Auto-Fixed Error Patterns</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;">
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">NullInjectorError: No provider for X</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">Can't bind to property (missing declaration)</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">ExpressionChangedAfterChecked error</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">Marble test assertion failures</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">1 timer(s) still in the queue</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">Cannot use fakeAsync with real Promises</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">NG0950: Required input not specified (v16+)</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">Signal input assignment TypeError (v17+)</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">@defer block not rendering (v17+)</div>
+            </div>
+            <div class="card" style="border-color:rgba(245,158,11,0.2);padding:0.4rem 0.6rem;gap:0.15rem;">
+              <div class="card-desc" style="font-size:0.68rem;">resource() value undefined (v18+)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="code-block">
+<span class="cm">// Before: failing test</span>
+<span class="fn">it</span>(<span class="str">'should display user name'</span>, () => {
+  component.user = { name: <span class="str">'Alice'</span> };
+  fixture.<span class="fn">detectChanges</span>();
+  <span class="cm">// ❌ TypeError: Cannot set property</span>
+  <span class="cm">//    'user' of signal input</span>
+});
+
+<span class="cm">// After: auto-fixed by /fix</span>
+<span class="fn">it</span>(<span class="str">'should display user name'</span>, () => {
+  fixture.<span class="fn">componentRef</span>.setInput(
+    <span class="str">'user'</span>, { name: <span class="str">'Alice'</span> }
+  );
+  fixture.<span class="fn">detectChanges</span>();
+  <span class="kw">const</span> el = fixture.nativeElement
+    .<span class="fn">querySelector</span>(<span class="str">'[data-testid="name"]'</span>);
+  <span class="fn">expect</span>(el.textContent).<span class="fn">toContain</span>(<span class="str">'Alice'</span>);
+});</div>
+        <div class="tag-row" style="margin-top:0.8rem;">
+          <span class="tag">--from-log=karma.log</span>
+          <span class="tag">--dry-run</span>
+          <span class="tag">--only=NullInjector</span>
+          <span class="tag">--group-by=error</span>
+          <span class="tag">--group-by=file</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 8 — suite command deep-dive
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-purple" data-slide="8">
+    <div class="phase-tag" style="background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.35); color: #A78BFA;">🚀 Command 4</div>
+    <h1 class="headline" style="font-size:clamp(1.6rem,3.5vw,2.5rem);">
+      <span class="accent-indigo">/angular-test:suite</span>
+    </h1>
+    <p class="subtitle" style="margin-top:0.5rem;">Full project orchestration — one command to go from zero to production-ready test coverage</p>
+    <div class="two-col" style="margin-top: 1rem; gap: 1.5rem;">
+      <div class="col">
+        <div class="pipeline" style="flex-direction: column; align-items: flex-start; gap: 0.7rem; max-width: 100%;">
+          <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="pipe-badge" style="background: rgba(16,185,129,0.15); border-color: var(--brand-green); width:2.2rem;height:2.2rem;font-size:0.9rem;">1</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--brand-green);">Health Check</div>
+              <div class="card-desc">Reads angular.json, package.json, karma.conf.js — validates project structure</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="pipe-badge" style="background: rgba(6,182,212,0.15); border-color: var(--brand-cyan); width:2.2rem;height:2.2rem;font-size:0.9rem;">2</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--brand-cyan);">Discover All Files</div>
+              <div class="card-desc">Finds every testable Angular file across the project — components, services, NgRx, etc.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="pipe-badge" style="background: rgba(124,58,237,0.15); border-color: #A78BFA; width:2.2rem;height:2.2rem;font-size:0.9rem;">3</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:#A78BFA;">Dependency-Ordered Generation</div>
+              <div class="card-desc">NgRx → Services → Guards → Directives → Components (correct import order)</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="pipe-badge" style="background: rgba(245,158,11,0.15); border-color: var(--brand-amber); width:2.2rem;height:2.2rem;font-size:0.9rem;">4</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--brand-amber);">Coverage Gap Fill</div>
+              <div class="card-desc">Runs coverage analysis across all files and fills missing scenarios</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="pipe-badge" style="background: rgba(244,63,94,0.15); border-color: var(--brand-rose); width:2.2rem;height:2.2rem;font-size:0.9rem;">5</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--brand-rose);">Fix All Failures</div>
+              <div class="card-desc">Applies all error-pattern fixes across the entire project in one pass</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8rem;">
+            <div class="pipe-badge" style="background: rgba(16,185,129,0.2); border-color: var(--brand-green); width:2.2rem;height:2.2rem;font-size:0.9rem;">✓</div>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--brand-green);">Project Health Report</div>
+              <div class="card-desc">Coverage breakdown by module — ready for stakeholder or CI review</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="banner" style="margin-top:0;background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(16,185,129,0.12));border-color:rgba(124,58,237,0.3);">
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.5rem;">Safety first — the suite always confirms scope before running on 20+ files</div>
+          <div style="font-size:0.85rem;color:var(--text-primary);">
+            "Found <strong style="color:#A78BFA;">47 untested files</strong> across 3 modules.<br/>
+            Proceed with full suite? [y/N]"
+          </div>
+        </div>
+        <div class="tag-row" style="margin-top:0.8rem;">
+          <span class="tag">--only=components</span>
+          <span class="tag">--threshold=85</span>
+          <span class="tag">--dry-run</span>
+          <span class="tag">--skip-generate</span>
+          <span class="tag">--skip-coverage</span>
+          <span class="tag">--skip-fix</span>
+          <span class="tag">--runner=jest</span>
+        </div>
+        <div class="code-block" style="margin-top:0.8rem;font-size:0.75rem;">
+<span class="cm">// Project Health Report</span>
+<span class="str">Module             Files   Coverage</span>
+─────────────────────────────────
+<span class="fn">auth/</span>              <span class="attr">12</span>      <span class="fn">94%</span>  ✓
+<span class="fn">dashboard/</span>         <span class="attr">8</span>       <span class="fn">88%</span>  ✓
+<span class="fn">shared/</span>            <span class="attr">23</span>      <span class="tag">61%</span>  ⚠
+<span class="fn">ngrx/store/</span>        <span class="attr">4</span>       <span class="fn">100%</span> ✓
+─────────────────────────────────
+<span class="kw">Overall</span>            <span class="attr">47</span>      <span class="fn">86%</span>  ✓</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 9 — Version Feature Matrix
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-blue" data-slide="9" style="justify-content:flex-start;padding-top:1.5rem;">
+    <div class="eyebrow">Version Intelligence</div>
+    <h1 class="headline" style="font-size:clamp(1.4rem,2.8vw,2.2rem);margin-bottom:0.3rem;">
+      Angular <span class="accent-cyan">v14 → v19</span> Feature Matrix
+    </h1>
+    <p class="subtitle" style="font-size:0.85rem;margin-top:0.4rem;margin-bottom:0.2rem;">The plugin auto-detects your version and generates the correct patterns — no configuration needed</p>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Feature</th>
+          <th>v14</th>
+          <th>v15</th>
+          <th>v16</th>
+          <th>v17</th>
+          <th>v18</th>
+          <th>v19</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Module-based components</td>
+          <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>Standalone components</td>
+          <td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>Functional guards / resolvers</td>
+          <td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td><code>@Input({ required: true })</code></td>
+          <td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>DestroyRef + takeUntilDestroyed()</td>
+          <td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>Signals &amp; computed()</td>
+          <td class="dash">—</td><td class="dash">—</td><td class="preview">preview</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td><code>input()</code>, <code>output()</code>, <code>model()</code></td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td><code>@if</code>, <code>@for</code>, <code>@switch</code> control flow</td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td><code>@defer</code> block testing</td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>NgRx marble testing (effects)</td>
+          <td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td><code>linkedSignal()</code></td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="preview">preview</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td><code>resource()</code> / <code>httpResource()</code></td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="preview">preview</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>Zoneless change detection</td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="preview">preview</td><td class="check">✓</td>
+        </tr>
+        <tr>
+          <td>Signal-based forms</td>
+          <td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="preview">preview</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:1.5rem;margin-top:0.8rem;font-size:0.72rem;color:var(--text-muted);">
+      <span><span class="check">✓</span> Fully supported</span>
+      <span><span class="preview">preview</span> Experimental support</span>
+      <span><span class="dash">—</span> Not applicable</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 10 — The Test Engineer Agent
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-teal" data-slide="10">
+    <div class="eyebrow">Built-in AI Agent</div>
+    <h1 class="headline">
+      Meet Your <span class="accent-teal">Senior Angular Test Engineer</span>
+    </h1>
+    <p class="subtitle">Your dedicated AI testing persona — 10 years of Angular expertise, always available in your Claude Code session</p>
+    <div class="two-col" style="margin-top: 1.2rem; gap: 1.5rem;">
+      <div class="col">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-teal);margin-bottom:0.5rem;">Trigger Phrases</div>
+        <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0;">
+          <div class="card" style="border-color:rgba(20,184,166,0.25);padding:0.5rem 0.7rem;">
+            <div class="card-desc" style="font-size:0.73rem;">"write all tests for…"</div>
+          </div>
+          <div class="card" style="border-color:rgba(20,184,166,0.25);padding:0.5rem 0.7rem;">
+            <div class="card-desc" style="font-size:0.73rem;">"full test coverage"</div>
+          </div>
+          <div class="card" style="border-color:rgba(20,184,166,0.25);padding:0.5rem 0.7rem;">
+            <div class="card-desc" style="font-size:0.73rem;">"TDD workflow"</div>
+          </div>
+          <div class="card" style="border-color:rgba(20,184,166,0.25);padding:0.5rem 0.7rem;">
+            <div class="card-desc" style="font-size:0.73rem;">"coverage audit"</div>
+          </div>
+          <div class="card" style="border-color:rgba(20,184,166,0.25);padding:0.5rem 0.7rem;">
+            <div class="card-desc" style="font-size:0.73rem;">"test this module"</div>
+          </div>
+          <div class="card" style="border-color:rgba(20,184,166,0.25);padding:0.5rem 0.7rem;">
+            <div class="card-desc" style="font-size:0.73rem;">"plan my tests"</div>
+          </div>
+        </div>
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-teal);margin-bottom:0.5rem;margin-top:0.8rem;">4-Phase Workflow</div>
+        <div style="display:flex;flex-direction:column;gap:0.4rem;">
+          <div class="card" style="padding:0.5rem 0.7rem;flex-direction:row;gap:0.6rem;border-color:rgba(20,184,166,0.2);">
+            <span style="color:var(--brand-teal);font-weight:700;font-size:0.78rem;">1.</span>
+            <div class="card-desc" style="font-size:0.73rem;"><strong style="color:var(--text-primary);">Discovery</strong> — reads source files, builds dependency graph</div>
+          </div>
+          <div class="card" style="padding:0.5rem 0.7rem;flex-direction:row;gap:0.6rem;border-color:rgba(20,184,166,0.2);">
+            <span style="color:var(--brand-teal);font-weight:700;font-size:0.78rem;">2.</span>
+            <div class="card-desc" style="font-size:0.73rem;"><strong style="color:var(--text-primary);">Strategy</strong> — plans which tests to write and in what order</div>
+          </div>
+          <div class="card" style="padding:0.5rem 0.7rem;flex-direction:row;gap:0.6rem;border-color:rgba(20,184,166,0.2);">
+            <span style="color:var(--brand-teal);font-weight:700;font-size:0.78rem;">3.</span>
+            <div class="card-desc" style="font-size:0.73rem;"><strong style="color:var(--text-primary);">Execution</strong> — writes deterministic, isolated test blocks</div>
+          </div>
+          <div class="card" style="padding:0.5rem 0.7rem;flex-direction:row;gap:0.6rem;border-color:rgba(20,184,166,0.2);">
+            <span style="color:var(--brand-teal);font-weight:700;font-size:0.78rem;">4.</span>
+            <div class="card-desc" style="font-size:0.73rem;"><strong style="color:var(--text-primary);">CI/CD Config</strong> — generates coverage thresholds and pipeline config</div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-teal);margin-bottom:0.5rem;">Deep Expertise</div>
+        <ul class="feature-list">
+          <li><span class="bullet">✓</span><span><strong>RxJS marble testing</strong> — TestScheduler and jasmine-marbles for NgRx effects</span></li>
+          <li><span class="bullet">✓</span><span><strong>@testing-library/angular</strong> — user-event centric, accessible test patterns</span></li>
+          <li><span class="bullet">✓</span><span><strong>Performance testing</strong> — memory leak detection and change detection cycle analysis</span></li>
+          <li><span class="bullet">✓</span><span><strong>Accessibility testing</strong> — axe-core integration and ARIA role assertions</span></li>
+          <li><span class="bullet">✓</span><span><strong>Multiple frameworks:</strong> Jasmine, Jest, Karma, Vitest syntax variants</span></li>
+          <li><span class="bullet">✓</span><span><strong>Angular v2–v19 history</strong> — handles any legacy codebase</span></li>
+        </ul>
+        <div class="banner" style="margin-top:0.8rem;">
+          Philosophy: <strong>"A test suite is only as good as its worst test."</strong>
+          Every generated spec targets both happy paths and error states.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       SLIDE 11 — Stats & ROI
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-green" data-slide="11">
+    <div class="eyebrow">ROI &amp; Impact</div>
+    <h1 class="headline">
+      What the Plugin<br/>
+      <span class="accent">Saves Your Team</span>
+    </h1>
+    <div class="stat-row" style="margin-top: 1.5rem; gap: 3rem;">
+      <div class="stat-box">
+        <span class="stat-num">~80%</span>
+        <span class="stat-label">Reduction in time<br/>to write a full test suite</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">18</span>
+        <span class="stat-label">Error patterns fixed<br/>automatically — zero debugging</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">100%</span>
+        <span class="stat-label">Target branch coverage<br/>per generated file</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">6</span>
+        <span class="stat-label">Angular versions<br/>supported out of the box</span>
+      </div>
+    </div>
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr); max-width: 860px; margin-top: 1.5rem; gap: 0.8rem;">
+      <div class="card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">🏗️</div>
+        <div class="card-title">Legacy Modernisation</div>
+        <div class="card-desc">Generate complete test suites for untested codebases that have shipped for years without coverage</div>
+      </div>
+      <div class="card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">🔄</div>
+        <div class="card-title">Version Migration</div>
+        <div class="card-desc">Upgrading from v14 to v17? Run /fix and the plugin rewrites tests for the new signal and standalone APIs</div>
+      </div>
+      <div class="card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">🚦</div>
+        <div class="card-title">CI/CD Enforcement</div>
+        <div class="card-desc">Auto-generated karma/jest threshold configs — plug straight into your pipeline with a passing baseline</div>
+      </div>
+      <div class="card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">🧑‍💻</div>
+        <div class="card-title">TDD from Day One</div>
+        <div class="card-desc">Pair /generate with feature development — start every sprint with test stubs already in place</div>
+      </div>
+      <div class="card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">🚫</div>
+        <div class="card-title">No Vendor Lock-in</div>
+        <div class="card-desc">Output is plain .spec.ts files — no runtime dependency, no proprietary test framework required</div>
+      </div>
+      <div class="card" style="border-color: rgba(16,185,129,0.3);">
+        <div class="card-icon">📋</div>
+        <div class="card-title">Stakeholder Reports</div>
+        <div class="card-desc">HTML/JSON coverage gap reports ready for PMs and QA leads — no manual spreadsheet work</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ��═════════════════════════════════════════════════════════
+       SLIDE 12 — Getting Started / CTA
+  ══════════════════════════════════════════════════════════ -->
+  <div class="slide bg-gradient-green" data-slide="12">
+    <div class="eyebrow">Get Started</div>
+    <h1 class="headline">
+      From Zero Coverage to<br/>
+      <span class="accent">Production-Ready</span> in Minutes
+    </h1>
+    <div class="divider"></div>
+    <div class="two-col" style="margin-top: 1rem; gap: 2rem; align-items: flex-start;">
+      <div class="col">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-green-light);margin-bottom:0.5rem;">Installation (3 steps)</div>
+        <div class="code-block" style="max-width:100%;">
+<span class="cm"># 1. Copy plugin into your project</span>
+<span class="fn">cp</span> -r angular-test-plugin/ \
+   your-project/<span class="str">.claude-plugins/angular-test/</span>
+
+<span class="cm"># 2. Reference it in settings</span>
+<span class="cm"># .claude/settings.json</span>
+{
+  <span class="str">"plugins"</span>: [<span class="str">".claude-plugins/angular-test"</span>]
+}
+
+<span class="cm"># 3. Open Claude Code and run</span>
+<span class="prompt">/angular-test:generate</span> src/app/auth/login.component.ts</div>
+      </div>
+      <div class="col">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--brand-green-light);margin-bottom:0.5rem;">Quick Command Reference</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <div class="card" style="border-color:rgba(16,185,129,0.3);padding:0.6rem 0.85rem;flex-direction:row;align-items:center;gap:0.7rem;">
+            <span class="cmd" style="font-size:0.75rem;">/angular-test:generate</span>
+            <span class="card-desc" style="font-size:0.72rem;">Create spec file(s) from scratch</span>
+          </div>
+          <div class="card" style="border-color:rgba(6,182,212,0.3);padding:0.6rem 0.85rem;flex-direction:row;align-items:center;gap:0.7rem;">
+            <span class="cmd" style="font-size:0.75rem;border-color:rgba(6,182,212,0.4);color:var(--brand-cyan);">/angular-test:coverage</span>
+            <span class="card-desc" style="font-size:0.72rem;">Fill missing test scenarios</span>
+          </div>
+          <div class="card" style="border-color:rgba(245,158,11,0.3);padding:0.6rem 0.85rem;flex-direction:row;align-items:center;gap:0.7rem;">
+            <span class="cmd" style="font-size:0.75rem;border-color:rgba(245,158,11,0.4);color:var(--brand-amber);">/angular-test:fix</span>
+            <span class="card-desc" style="font-size:0.72rem;">Repair failing tests (18 patterns)</span>
+          </div>
+          <div class="card" style="border-color:rgba(124,58,237,0.3);padding:0.6rem 0.85rem;flex-direction:row;align-items:center;gap:0.7rem;">
+            <span class="cmd" style="font-size:0.75rem;border-color:rgba(124,58,237,0.4);color:#A78BFA;">/angular-test:suite</span>
+            <span class="card-desc" style="font-size:0.72rem;">Full project pipeline (all 3 phases)</span>
+          </div>
+        </div>
+        <div class="banner" style="margin-top:0.8rem;padding:0.8rem 1.2rem;">
+          <div style="font-size:0.82rem;">Built by <strong>Vivek Jain</strong> · Intelliswift</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">vivek.jain@intelliswift.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .deck -->
+
+<!-- ─── Dot navigation ────────────────────────────────────── -->
+<div class="dot-row" id="dotRow"></div>
+
+<!-- ─── Arrow navigation ──────────────────────────────────── -->
+<div class="nav">
+  <button id="btnPrev">← Prev</button>
+  <span class="slide-counter" id="counter">1 / 12</span>
+  <button id="btnNext">Next →</button>
+</div>
+
+<div class="kbd-hint">← → arrow keys to navigate</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const bgLayer = document.getElementById('bg-layer');
+  const dotRow  = document.getElementById('dotRow');
+  const counter = document.getElementById('counter');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  let current = 0;
+  const total = slides.length;
+
+  // extract bg class
+  function getBgClass(el) {
+    return [...el.classList].find(c => c.startsWith('bg-gradient-')) || '';
+  }
+
+  // build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => goTo(i));
+    dotRow.appendChild(d);
+  });
+
+  function goTo(idx) {
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current - (current !== idx ? 0 : 0)].classList.remove('exit'), 400);
+
+    current = idx;
+
+    slides.forEach((s, i) => {
+      s.classList.toggle('active', i === current);
+      s.classList.remove('exit');
+    });
+
+    // update bg
+    const bg = getBgClass(slides[current]);
+    bgLayer.className = bg;
+
+    // update dots
+    dotRow.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+
+    // update counter
+    counter.textContent = (current + 1) + ' / ' + total;
+
+    // update buttons
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === total - 1;
+  }
+
+  btnPrev.addEventListener('click', () => { if (current > 0) goTo(current - 1); });
+  btnNext.addEventListener('click', () => { if (current < total - 1) goTo(current + 1); });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { if (current < total - 1) goTo(current + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { if (current > 0) goTo(current - 1); }
+  });
+
+  // init
+  goTo(0);
+</script>
+</body>
+</html>
