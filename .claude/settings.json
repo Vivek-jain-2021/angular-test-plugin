@@ -1,0 +1,85 @@
+{
+  "$schema": "https://claude.ai/schemas/settings.json",
+  "plugins": [
+    ".."
+  ],
+  "pluginSettings": {
+    "angular-test": {
+      "defaultTestRunner": "jasmine",
+      "coverageTarget": 90,
+      "includeJestVariants": true,
+      "angularVersions": ["14", "15", "16", "17", "18"],
+      "excludeFromCoverage": [
+        "src/environments/**",
+        "src/main.ts",
+        "src/polyfills.ts",
+        "src/**/*.module.ts",
+        "src/**/index.ts"
+      ],
+      "defaultMockStrategy": "createSpyObj",
+      "enforceNoAny": true,
+      "preferFakeAsync": true
+    }
+  },
+  "skills": {
+    "angular-testing": {
+      "autoTrigger": true,
+      "triggerPatterns": [
+        "*.spec.ts",
+        "karma.conf.js",
+        "jest.config.*",
+        "ng test",
+        "TestBed",
+        "fakeAsync",
+        "HttpClientTestingModule",
+        "MockStore",
+        "NullInjectorError",
+        "coverage"
+      ]
+    }
+  },
+  "agents": {
+    "test-engineer": {
+      "model": "claude-opus-4-6",
+      "autoInvokeOnPatterns": [
+        "write all tests for",
+        "full test coverage",
+        "TDD workflow",
+        "test suite for",
+        "set up testing for",
+        "plan my tests",
+        "coverage audit"
+      ]
+    }
+  },
+  "commandAliases": {
+    "/gen-test": "/angular-test:generate",
+    "/coverage": "/angular-test:coverage",
+    "/fix-test": "/angular-test:fix"
+  },
+  "marketplace": {
+    "enabled": true,
+    "registry": "https://registry.claude.ai/plugins",
+    "publishConfig": {
+      "name": "angular-test",
+      "version": "1.0.0",
+      "displayName": "Angular Test & Coverage",
+      "category": "testing",
+      "tags": ["angular", "jasmine", "jest", "karma", "ngrx", "coverage"],
+      "description": "Generate complete spec files, identify coverage gaps, and fix failing tests for any Angular artifact (Angular 14–18).",
+      "screenshots": [],
+      "homepage": "https://github.com/your-org/angular-test-plugin"
+    }
+  },
+  "permissions": {
+    "readFiles": true,
+    "writeFiles": false,
+    "runCommands": false,
+    "webSearch": false
+  },
+  "ui": {
+    "showCoverageBadge": true,
+    "highlightUncoveredLines": true,
+    "statusBarItem": "Angular Tests"
+  }
+}

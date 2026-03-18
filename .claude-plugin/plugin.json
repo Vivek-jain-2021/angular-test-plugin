@@ -1,0 +1,8 @@
+{
+  "name": "angular-test",
+  "description": "Comprehensive Angular unit testing plugin for Claude Code. Generates complete .spec.ts files, identifies coverage gaps, and fixes failing tests for Angular 14–19.",
+  "author": {
+    "name": "Vivek Jain",
+    "email": "vivek.jain@intelliswift.com"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "angular-test-plugin",
+  "description": "Comprehensive Angular unit testing plugin — generates .spec.ts files, identifies coverage gaps, and fixes failing tests for Angular 14–19",
+  "owner": {
+    "name": "Vivek Jain",
+    "email": "vivek.jain@intelliswift.com"
+  },
+  "plugins": [
+    {
+      "name": "angular-test",
+      "description": "Comprehensive Angular unit testing plugin for Claude Code. Generates complete .spec.ts files, identifies coverage gaps, and fixes failing tests for Angular 14–19.",
+      "version": "3.0.0",
+      "author": {
+        "name": "Vivek Jain",
+        "email": "vivek.jain@intelliswift.com"
+      },
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Vivek-jain-2021/angular-test-plugin.git"
+      },
+      "category": "testing",
+      "homepage": "https://github.com/Vivek-jain-2021/angular-test-plugin"
+    }
+  ]
+}
